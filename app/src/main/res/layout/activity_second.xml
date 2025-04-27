@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.gridlayout.widget.GridLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/gridLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EEEEEE">
-    <!-- En tu activity_main.xml -->
-    <Button
-        android:id="@+id/btnSeleccionarDispositivo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Seleccionar dispositivo"
-        android:onClick="onSeleccionarDispositivoClick"/>
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="Dispositivos"
-        android:textSize="30sp" />
-</FrameLayout>
+    android:padding="8dp"
+    app:columnCount="6"
+    app:rowCount="9">
+</androidx.gridlayout.widget.GridLayout>
