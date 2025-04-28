@@ -6,5 +6,5 @@
     <item
         android:id="@+id/nav_second"
         android:icon="@android:drawable/ic_menu_manage"
-        android:title="Segunda Actividad" />
+        android:title="Juego Interactivo" />
 </menu>

@@ -5,7 +5,6 @@
     android:id="@+id/gridLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="8dp"
-    app:columnCount="6"
-    app:rowCount="9">
+    android:padding="4dp"
+    app:alignmentMode="alignBounds">
 </androidx.gridlayout.widget.GridLayout>

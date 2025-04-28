@@ -3,158 +3,196 @@ package com.example.comunicate_apptest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.gridlayout.widget.GridLayout
+import kotlin.math.ceil
 
 class SecondActivity : AppCompatActivity() {
 
     private lateinit var gridLayout: GridLayout
     private var firstCard: ImageButton? = null
-    private var firstCardTag: String? = null
+    private var firstTag: String? = null
     private var isProcessing = false
     private var matchedPairs = 0
 
+    // Tus 27 letras
     private val letters = listOf(
-        "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
-        "k", "l", "m", "n", "enne", "o", "p", "q", "r", "s",
-        "t", "u", "v", "w", "x", "y", "z"
+        "a","b","c","d","e","f","g","h","i","j",
+        "k","l","m","n","enne","o","p","q","r","s",
+        "t","u","v","w","x","y","z"
     )
-
     private val cardValues = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
-
         gridLayout = findViewById(R.id.gridLayout)
+
         setupGame()
     }
 
     private fun setupGame() {
-        // Crear pares de cartas
+        // 1) Prepara y baraja
+        cardValues.clear()
         letters.forEach { letter ->
-            cardValues.add(letter)
-            cardValues.add("sign_$letter")
+            cardValues += letter
+            cardValues += "sign_$letter"
         }
         cardValues.shuffle()
 
-        // Configurar tamaño de las cartas
-        val margin = 8
-        val screenWidth = resources.displayMetrics.widthPixels
-        val cardSize = (screenWidth - (6 + 1) * margin) / 6
+        // 2) Columnas y filas
+        val cols = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 8 else 6
+        val rows = ceil(cardValues.size.toDouble() / cols).toInt()
 
-        // Agregar cartas al GridLayout
+        gridLayout.columnCount = cols
+        gridLayout.rowCount    = rows
+        gridLayout.removeAllViews()
+
+        // 3) Margen en px
+        val margin = (4 * resources.displayMetrics.density).toInt()
+
+        // 4) Añade cada carta con peso 1 en fila y columna (usa 0px + weight)
         cardValues.forEach { tag ->
             val card = ImageButton(this).apply {
                 layoutParams = GridLayout.LayoutParams().apply {
-                    width = cardSize
-                    height = cardSize
+                    width  = 0
+                    height = 0
+                    rowSpec    = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                     setMargins(margin, margin, margin, margin)
                 }
-                setBackgroundResource(R.drawable.card_back)
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                setScaleType(ImageView.ScaleType.CENTER_CROP)
+                setImageResource(R.drawable.card_back)
                 this.tag = tag
-                setOnClickListener { handleCardClick(it as ImageButton) }
+                setOnClickListener { onCardClick(this) }
+                background = null
             }
             gridLayout.addView(card)
         }
     }
 
-    private fun handleCardClick(card: ImageButton) {
-        if (isProcessing || card == firstCard || card.tag == null) return
+    private fun onCardClick(card: ImageButton) {
+        if (isProcessing || card == firstCard) return
 
-        flipCard(card) {
-            if (firstCard == null) {
-                firstCard = card
-                firstCardTag = card.tag as String
-            } else {
-                checkForMatch(card)
-            }
-        }
-    }
-
-    private fun checkForMatch(secondCard: ImageButton) {
+        // 1) Anima volteo
         isProcessing = true
-        val secondTag = secondCard.tag as String
-
-        if (isMatchingPair(firstCardTag!!, secondTag)) {
-            disableCards(firstCard!!, secondCard)
-            matchedPairs++
-            checkGameOver()
-            resetSelection()
-        } else {
-            flipBackCards(firstCard!!, secondCard)
-        }
-    }
-
-    private fun flipCard(card: ImageButton, callback: () -> Unit) {
-        card.isEnabled = false
-        ObjectAnimator.ofFloat(card, "rotationY", 0f, 180f).apply {
-            duration = 500
+        ObjectAnimator.ofFloat(card, "rotationY", 0f, 90f).apply {
+            duration = 200
             addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    callback()
-                    card.isEnabled = true
+                override fun onAnimationEnd(animator: Animator) {
+                    // 2) Cambia imagen en la mitad
+                    val resId = resources.getIdentifier(card.tag as String, "drawable", packageName)
+                    card.setImageResource(resId)
+
+                    // Segunda mitad de la animación
+                    ObjectAnimator.ofFloat(card, "rotationY", -90f, 0f).apply {
+                        duration = 200
+                        addListener(object : AnimatorListenerAdapter() {
+                            override fun onAnimationEnd(animator: Animator) {
+                                onFlipFinished(card)
+                            }
+                        })
+                        start()
+                    }
                 }
             })
             start()
         }
-
-        // Cambiar imagen a la mitad de la animación
-        Handler(Looper.getMainLooper()).postDelayed({
-            val resId = resources.getIdentifier(card.tag as String, "drawable", packageName)
-            card.setImageResource(resId)
-        }, 250)
     }
 
-    private fun flipBackCards(vararg cards: ImageButton) {
-        cards.forEach { card ->
-            card.isEnabled = false
-            ObjectAnimator.ofFloat(card, "rotationY", 180f, 0f).apply {
-                duration = 500
-                addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        card.setImageResource(R.drawable.card_back)
-                        card.isEnabled = true
-                    }
-                })
-                start()
+
+    private fun onFlipFinished(card: ImageButton) {
+        if (isDestroyed) return
+
+        try {
+            if (firstCard == null) {
+                firstCard = card
+                firstTag = card.tag?.toString() ?: return
+                isProcessing = false
+            } else {
+                val secondTag = card.tag?.toString() ?: return
+                if (firstTag?.removePrefix("sign_") == secondTag.removePrefix("sign_")) {
+                    // Coincidencia
+                    card.isEnabled = false
+                    firstCard?.isEnabled = false
+                    matchedPairs++
+                    resetSelection()
+                } else {
+                    // No coinciden - usar corrutina segura
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (!isDestroyed && ::gridLayout.isInitialized) {
+                            firstCard?.let { flip(it, showFront = false) }
+                            flip(card, showFront = false)
+                            resetSelection()
+                        }
+                    }, 1000)
+                }
             }
-        }
-
-        Handler(Looper.getMainLooper()).postDelayed({
+        } catch (e: Exception) {
+            e.printStackTrace()
             resetSelection()
-        }, 1000)
-    }
-
-    private fun disableCards(vararg cards: ImageButton) {
-        cards.forEach {
-            it.isEnabled = false
-            it.alpha = 0.5f
         }
     }
 
-    private fun isMatchingPair(tag1: String, tag2: String): Boolean {
-        val base1 = tag1.removePrefix("sign_")
-        val base2 = tag2.removePrefix("sign_")
-        return base1 == base2
+
+    private fun flip(card: ImageButton, showFront: Boolean, onEnd: () -> Unit = {}) {
+        card.isEnabled = false
+
+        // Verificar si la tarjeta sigue vinculada a la actividad
+        if (isDestroyed || isFinishing) return
+
+        // Primera mitad del giro
+        ObjectAnimator.ofFloat(card, "rotationY", 0f, 90f).apply {
+            duration = 250
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    try {
+                        // Cambiar imagen de manera segura
+                        if (showFront) {
+                            val tag = card.tag as? String ?: return
+                            val resId = resources.getIdentifier(tag, "drawable", packageName)
+                            if (resId != 0) {
+                                card.setImageResource(resId)
+                            }
+                        } else {
+                            card.setImageResource(R.drawable.card_back)
+                        }
+                        card.alpha = if (showFront) 1f else 1f
+
+                        // Segunda mitad del giro
+                        ObjectAnimator.ofFloat(card, "rotationY", -90f, 0f).apply {
+                            duration = 250
+                            addListener(object : AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: Animator) {
+                                    if (!isDestroyed) {
+                                        card.isEnabled = true
+                                        onEnd()
+                                    }
+                                }
+                            })
+                            start()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            })
+            start()
+        }
     }
+
+
+
 
     private fun resetSelection() {
         firstCard = null
-        firstCardTag = null
+        firstTag  = null
         isProcessing = false
-    }
-
-    private fun checkGameOver() {
-        if (matchedPairs == letters.size) {
-            // Todo: Mostrar mensaje de victoria
-        }
     }
 }
