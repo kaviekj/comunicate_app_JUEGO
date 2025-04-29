@@ -20,7 +20,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#D0902A2A"
+            android:background="#1E3F66"
             android:elevation="4dp"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:title="Mi App" />
@@ -43,70 +43,74 @@
                 style="@style/Widget.AppCompat.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#A0B6DB"
-                android:backgroundTint="#08021B"
+                android:background=" #73A5C6"
+                android:backgroundTint="#91BAD6"
                 android:text="Pausar Lectura" />
 
             <TextView
                 android:id="@+id/charTextView"
                 android:layout_width="match_parent"
-                android:layout_height="183dp"
+                android:layout_height="202dp"
                 android:layout_marginTop="50dp"
-                android:background="#066E7C"
-                android:backgroundTint="#FF0000"
+                android:background="#73A5C6"
+                android:backgroundTint="#528AAE"
                 android:gravity="center"
                 android:text="Letra"
-                android:textSize="60sp" />
+                android:textSize="60sp"
+                android:translationY="-50dp"
+                android:translationZ="100dp" />
 
             <GridView
                 android:id="@+id/gridLetras"
                 android:layout_width="match_parent"
-                android:layout_height="11dp"
+                android:layout_height="574dp"
                 android:layout_weight="1"
-                android:background="#62A3D7"
+                android:background="#2E5984"
                 android:horizontalSpacing="8dp"
                 android:numColumns="3"
                 android:padding="16dp"
                 android:stretchMode="columnWidth"
+                android:translationY="-50dp"
                 android:verticalSpacing="8dp" />
 
             <LinearLayout
                 android:id="@+id/signContainer"
                 android:layout_width="match_parent"
                 android:layout_height="494dp"
-                android:background="@color/black"
+                android:background="#BCD2E8"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:translationY="-25dp"
                 android:visibility="gone">
 
-                            <ImageButton
-                                android:id="@+id/btnClose"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:layout_gravity="end"
-                                android:background="@color/purple_200"
-                                android:src="@drawable/ic_close"
-                                android:translationY="-1dp" />
-                            <ImageView
-                                android:id="@+id/imgSign"
-                                android:layout_width="374dp"
-                                android:layout_height="302dp"
-                                android:layout_gravity="center"
-                                android:layout_marginTop="40dp"
-                                android:background="#00FFFFFF"
-                                android:scaleType="center"
-                                android:translationY="-30dp" />
+                <ImageButton
+                    android:id="@+id/btnClose"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="end"
+                    android:background="@color/purple_200"
+                    android:src="@drawable/ic_close"
+                    android:translationY="-1dp" />
 
-                            <TextView
-                                android:id="@+id/txtEvaluation"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="24dp"
-                                android:gravity="center"
-                                android:text="Evaluación:"
-                                android:textSize="18sp"
-                                android:translationY="-20dp" />
+                <ImageView
+                    android:id="@+id/imgSign"
+                    android:layout_width="374dp"
+                    android:layout_height="302dp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="40dp"
+                    android:background="#00FFFFFF"
+                    android:scaleType="center"
+                    android:translationY="-30dp" />
+
+                <TextView
+                    android:id="@+id/txtEvaluation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center"
+                    android:text="Evaluación:"
+                    android:textSize="18sp"
+                    android:translationY="-20dp" />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>
