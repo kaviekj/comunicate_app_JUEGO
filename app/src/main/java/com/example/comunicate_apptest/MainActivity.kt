@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var btnPausa: Button
     private lateinit var tts: TextToSpeech
     private lateinit var gridLetras: GridView
-    private lateinit var signContainer: FrameLayout // ✅ Coincide con el XML
+    private lateinit var signContainer: LinearLayout
     private lateinit var imgSign: ImageView  // <-- ¡Faltaba un salto de línea aquí!
     private lateinit var txtEvaluation: TextView
 
@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         // Configurar Navigation Drawer
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         val toggle = ActionBarDrawerToggle(
             this,
