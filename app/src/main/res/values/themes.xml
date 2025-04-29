@@ -3,7 +3,6 @@
         <!-- Atributos de tu tema (colores, etc.) -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-
         <!-- Tu color de tema, etc -->
         <item name="colorPrimaryVariant">@color/purple_700</item>
         <item name="colorOnPrimary">@color/white</item>

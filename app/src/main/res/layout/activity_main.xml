@@ -1,44 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
 
-    <!-- Menú lateral -->
-    <!-- Contenido principal -->
+    <!-- Contenedor principal -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Ejemplo de TextView para mostrar la letra -->
-
-        <Button
-            android:id="@+id/btnPausa"
-            style="@style/Widget.AppCompat.Button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="togglePausaLectura"
-            android:text="Pausar Lectura" />
-
+        <!-- Toolbar -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+            android:elevation="4dp"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
-        <TextView
-            android:id="@+id/charTextView"
+        <!-- Contenido principal -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
-            android:gravity="center"
-            android:text="Letra"
-            android:textSize="60sp" />
+            android:layout_height="match_parent">
+
+            <!-- Vista principal con letras -->
+            <LinearLayout
+                android:id="@+id/mainContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/white">
+
+                <Button
+                    android:id="@+id/btnPausa"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/teal_700"
+                    android:onClick="togglePausaLectura"
+                    android:text="Pausar Lectura" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="213dp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="Selecciona una letra"
+                    android:textSize="20sp" />
+
+                <GridView
+                    android:id="@+id/gridLetras"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:horizontalSpacing="8dp"
+                    android:numColumns="3"
+                    android:padding="16dp"
+                    android:stretchMode="columnWidth"
+                    android:verticalSpacing="8dp" />
+            </LinearLayout>
+
+            <!-- Contenedor de seña (oculto inicialmente) -->
+            <FrameLayout
+                android:id="@+id/signContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#CCFFFFFF"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:background="@color/white">
+
+                    <ImageButton
+                        android:id="@+id/btnClose"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="end"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_close" />
+
+                    <ImageView
+                        android:id="@+id/imgSign"
+                        android:layout_width="200dp"
+                        android:layout_height="200dp"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="16dp" />
+
+
+                    <TextView
+                        android:id="@+id/txtEvaluation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:gravity="center"
+                        android:text="Evaluación: "
+                        android:textSize="18sp" />
+                </LinearLayout>
+            </FrameLayout>
+        </FrameLayout>
     </LinearLayout>
 
+    <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"

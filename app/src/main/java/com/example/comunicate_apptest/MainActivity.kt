@@ -1,19 +1,21 @@
 package com.example.comunicate_apptest
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.*
 import android.speech.tts.TextToSpeech
+import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.view.ViewGroup
+import android.widget.*
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -28,11 +30,14 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    // UI
-    private lateinit var charTextView: TextView
+    // UI Components
     private lateinit var drawer: DrawerLayout
     private lateinit var btnPausa: Button
     private lateinit var tts: TextToSpeech
+    private lateinit var gridLetras: GridView
+    private lateinit var signContainer: FrameLayout // ✅ Coincide con el XML
+    private lateinit var imgSign: ImageView  // <-- ¡Faltaba un salto de línea aquí!
+    private lateinit var txtEvaluation: TextView
 
     // Bluetooth
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
@@ -40,8 +45,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var inputStream: InputStream? = null
     private var readThread: Thread? = null
     private var mantenerHiloActivo = true
-
-    // Estados
     private var lecturaPausada = false
     private val bufferPausa = StringBuilder()
 
@@ -52,24 +55,53 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val UUID_BT: UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
     }
 
+
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        charTextView = findViewById(R.id.charTextView)
+        // Inicializar componentes UI PRIMERO
         drawer = findViewById(R.id.drawer_layout)
         btnPausa = findViewById(R.id.btnPausa)
+        gridLetras = findViewById(R.id.gridLetras) // ✅ Inicializado correctamente
+        signContainer = findViewById(R.id.signContainer)
+        imgSign = findViewById(R.id.imgSign)
+        txtEvaluation = findViewById(R.id.txtEvaluation)
+        val btnClose: ImageButton = findViewById(R.id.btnClose)
+        btnClose.setOnClickListener {
+            signContainer.visibility = View.GONE
+        }
+        // Configurar GridView DESPUÉS de inicializar
+        val letras = listOf(
+            "A", "B", "C", "D", "E", "F", "G", "H", "I",
+            "J", "K", "L", "M", "N", "Ñ", "O", "P", "Q",
+            "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+        )
 
+        gridLetras.adapter = LetrasAdapter(this, letras) // ✅ Adaptador asignado después de inicializar
+
+        gridLetras.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
+            mostrarSignoLetra(letras[position])
+        }
+
+        // Configurar TTS
         tts = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
                 tts.language = Locale("es", "ES")
             }
         }
 
+        // Configurar Navigation Drawer
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        val toggle = ActionBarDrawerToggle(this, drawer, toolbar,
-            R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+        val toggle = ActionBarDrawerToggle(
+            this,
+            drawer,
+            toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
         drawer.addDrawerListener(toggle)
         toggle.syncState()
 
@@ -79,6 +111,38 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         verificarPermisosYEstadoBluetooth()
     }
 
+    private fun mostrarSignoLetra(letra: String) {
+        val nombreSigno = when (letra.toLowerCase()) {
+            "ñ" -> "sign_enne"
+            else -> "sign_${letra.toLowerCase()}"
+
+        }
+        txtEvaluation.visibility = View.GONE
+        val resourceId = resources.getIdentifier(
+            nombreSigno,
+            "drawable",
+            packageName
+        )
+        signContainer.setOnTouchListener { _, _ -> true } // Intercepta todos los toques
+        runOnUiThread {
+            if (resourceId != 0) {
+                imgSign.setImageResource(resourceId)
+                signContainer.visibility = View.VISIBLE
+                tts.speak(letra, TextToSpeech.QUEUE_FLUSH, null, null)
+                txtEvaluation.text = "Evaluación: ${obtenerEvaluacionAleatoria()}"
+            } else {
+                Toast.makeText(this, "Seña no disponible", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun obtenerEvaluacionAleatoria(): String {
+        return when ((0..2).random()) {
+            0 -> "Bien"
+            1 -> "Muy bien"
+            else -> "Regular"
+        }
+    }
     private fun verificarPermisosYEstadoBluetooth() {
         if (bluetoothAdapter == null) {
             mostrarError("Este dispositivo no soporta Bluetooth")
@@ -219,21 +283,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun procesarDatosRecibidos(datos: String) {
         runOnUiThread {
-            charTextView.text = datos
-            tts.speak(datos, TextToSpeech.QUEUE_FLUSH, null, null)
+            mostrarSignoLetra(datos.trim())
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                verificarPermisosYEstadoBluetooth()
-            } else {
-                mostrarError("La aplicación necesita permisos para funcionar correctamente")
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_home -> {}
+            R.id.nav_second -> {
+                startActivity(Intent(this, SecondActivity::class.java))
             }
         }
+        drawer.closeDrawer(GravityCompat.START)
+        return true
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -250,7 +312,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun mostrarError(mensaje: String) {
         runOnUiThread {
             Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
-            charTextView.text = "Error: $mensaje"
         }
     }
 
@@ -275,16 +336,5 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         super.onDestroy()
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.nav_home -> {}
-            R.id.nav_second -> {
-                startActivity(Intent(this, SecondActivity::class.java))
-            }
-        }
-        drawer.closeDrawer(GravityCompat.START)
-        return true
     }
 }
