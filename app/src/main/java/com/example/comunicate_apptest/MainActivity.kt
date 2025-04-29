@@ -14,6 +14,7 @@ import android.speech.tts.TextToSpeech
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
+import android.widget.TextView
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -31,6 +32,7 @@ import java.util.*
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     // UI Components
+    private lateinit var charTextView: TextView
     private lateinit var drawer: DrawerLayout
     private lateinit var btnPausa: Button
     private lateinit var tts: TextToSpeech
@@ -49,6 +51,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private val bufferPausa = StringBuilder()
 
     companion object {
+        private val deviceName = "HC-05"
+        private val uuidBt = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
         const val REQUEST_ENABLE_BT = 1
         const val REQUEST_BLUETOOTH_PERMISSION = 2
         const val DEVICE_NAME = "HC-05"
@@ -60,7 +64,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        charTextView = findViewById(R.id.charTextView) // Dentro de onCreate
         // Inicializar componentes UI PRIMERO
         drawer = findViewById(R.id.drawer_layout)
         btnPausa = findViewById(R.id.btnPausa)
@@ -143,67 +147,81 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             else -> "Regular"
         }
     }
+
     private fun verificarPermisosYEstadoBluetooth() {
+        // Verificar si el dispositivo soporta Bluetooth
         if (bluetoothAdapter == null) {
             mostrarError("Este dispositivo no soporta Bluetooth")
             return
         }
 
-        if (!permisosBluetoothConcedidos()) {
-            pedirPermisosBluetooth()
-            return
+        // Verificar permisos según versión de Android
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN),
+                        REQUEST_BLUETOOTH_PERMISSION
+                    )
+                    return
+                }
+            }
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED -> {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    REQUEST_BLUETOOTH_PERMISSION
+                )
+                return
+            }
         }
 
+        // Verificar si Bluetooth está activado
         if (!bluetoothAdapter.isEnabled) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+            }
             return
         }
 
+        // Todo está listo para conectar
         conectarDispositivoBluetooth()
-    }
-
-    private fun permisosBluetoothConcedidos(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun pedirPermisosBluetooth() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN),
-                REQUEST_BLUETOOTH_PERMISSION
-            )
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_BLUETOOTH_PERMISSION
-            )
-        }
     }
 
     private fun conectarDispositivoBluetooth() {
         try {
-            val device: BluetoothDevice? = if (permisosBluetoothConcedidos()) {
-                bluetoothAdapter?.bondedDevices?.find { it.name.equals(DEVICE_NAME, ignoreCase = true) }
-            } else null
+            // Buscar dispositivo HC-05 emparejado
+            val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    bluetoothAdapter?.bondedDevices?.find { it.name.equals(deviceName, ignoreCase = true) }
+                } else {
+                    null
+                }
+            } else {
+                bluetoothAdapter?.bondedDevices?.find { it.name.equals(deviceName, ignoreCase = true) }
+            }
 
             if (device == null) {
-                mostrarError("Dispositivo $DEVICE_NAME no encontrado. Empareje primero el dispositivo.")
+                mostrarError("Dispositivo $deviceName no encontrado. Empareje primero el dispositivo.")
                 return
             }
 
-            val socket = device.createRfcommSocketToServiceRecord(UUID_BT)
+            // Establecer conexión con el dispositivo
+            val socket = device.createRfcommSocketToServiceRecord(uuidBt)
             socket.connect()
 
+            // Asignar socket e inputStream a las variables de clase
             bluetoothSocket = socket
             inputStream = socket.inputStream
 
+            // Iniciar hilo de lectura y mostrar mensaje
             comenzarLecturaContinua()
             mostrarMensaje("Conectado a ${device.name}")
 
@@ -213,7 +231,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             mostrarError("Error de conexión: ${e.message}")
         }
     }
-
     private fun comenzarLecturaContinua() {
         mantenerHiloActivo = true
         readThread?.interrupt()
@@ -226,16 +243,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 try {
                     val bytesLeidos = inputStream?.read(buffer) ?: -1
                     if (bytesLeidos > 0) {
+                        // decodificar siempre en UTF-8
                         val chunk = String(buffer, 0, bytesLeidos, Charsets.UTF_8)
 
                         if (lecturaPausada) {
+                            // Acumula durante la pausa
                             bufferPausa.append(chunk)
                         } else {
+                            // Procesa fragmentos hasta la primera línea completa
                             sb.append(chunk)
                             var fin: Int
                             while (sb.indexOf("\n").also { fin = it } != -1) {
                                 var linea = sb.substring(0, fin).trim()
                                 sb.delete(0, fin + 1)
+                                // Limpia caracteres no imprimibles
                                 linea = linea.replace(Regex("[^\\p{Print}\\r\\n]"), "")
                                 if (linea.isNotEmpty()) {
                                     procesarDatosRecibidos(linea)
@@ -262,28 +283,50 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun togglePausaLectura(view: View) {
         lecturaPausada = !lecturaPausada
 
-        if (lecturaPausada) {
-            btnPausa.text = "Reanudar Lectura"
-            btnPausa.setBackgroundColor(Color.GREEN)
-            Toast.makeText(this, "Lectura pausada", Toast.LENGTH_SHORT).show()
-        } else {
-            btnPausa.text = "Pausar Lectura"
-            btnPausa.setBackgroundColor(Color.RED)
-            Toast.makeText(this, "Lectura reanudada", Toast.LENGTH_SHORT).show()
+        runOnUiThread {
+            if (lecturaPausada) {
+                btnPausa.text = "Reanudar Lectura"
+                btnPausa.setBackgroundColor(Color.GREEN)
+                Toast.makeText(this, "Lectura pausada", Toast.LENGTH_SHORT).show()
+            } else {
+                btnPausa.text = "Pausar Lectura"
+                btnPausa.setBackgroundColor(Color.RED)
+                Toast.makeText(this, "Lectura reanudada", Toast.LENGTH_SHORT).show()
 
-            if (bufferPausa.isNotEmpty()) {
-                val datosLimpios = bufferPausa.toString()
-                    .replace(Regex("[^\\p{Print}\\r\\n]"), "")
-                    .trim()
-                procesarDatosRecibidos(datosLimpios)
-                bufferPausa.clear()
+                // Procesa TODO lo acumulado durante la pausa
+                if (bufferPausa.isNotEmpty()) {
+                    procesarDatosRecibidos(
+                        bufferPausa
+                            .toString()
+                            .replace(Regex("[^\\p{Print}\\r\\n]"), "")
+                            .trim()
+                    )
+                    bufferPausa.clear()
+                }
             }
         }
     }
-
     private fun procesarDatosRecibidos(datos: String) {
         runOnUiThread {
-            mostrarSignoLetra(datos.trim())
+            charTextView.text = datos
+            tts.speak(datos, TextToSpeech.QUEUE_FLUSH, null, null)
+        }
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            REQUEST_BLUETOOTH_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    verificarPermisosYEstadoBluetooth()
+                } else {
+                    mostrarError("La aplicación necesita permisos para funcionar correctamente")
+                }
+            }
         }
     }
 
