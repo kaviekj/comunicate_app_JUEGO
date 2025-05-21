@@ -30,4 +30,17 @@
     <style name="SplashTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
+    <style name="MenuStyle" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="MenuItemButtonStyle">
+        <item name="android:background">@drawable/button_background</item>
+        <item name="android:textColor">@android:color/black</item>
+    </style>
+    <style name="MenuItemCenteredTextStyle">
+        <item name="android:textAlignment">center</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">50dp</item> <!-- Ajusta este valor -->
+        <item name="android:paddingEnd">50dp</item>   <!-- Ajusta este valor -->
+    </style>
 </resources>

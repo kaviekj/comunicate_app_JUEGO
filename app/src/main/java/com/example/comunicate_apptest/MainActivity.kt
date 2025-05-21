@@ -107,6 +107,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val navigationView: NavigationView = findViewById(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
+        navigationView.itemIconTintList = null
 
         verificarPermisosYEstadoBluetooth()
     }
